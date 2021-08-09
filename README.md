@@ -32,7 +32,7 @@ Recommended-
 8. ChemAxon's Marvin (Component-contribution use this to estimate PkA values)
 - Marvin is only required for adding structures of novel metabolites/compounds that are not in the KEGG database
 - instructions (https://chemaxon.com/products/marvin/download)
-- add "cxcalc.bat/cxcalc.exe" to PATH and also in "./CC/chemaxon.py" file
+- add "cxcalc.bat (macOS) /cxcalc.exe (Windows)" to PATH and also in "./CC/chemaxon.py" file
 - you will need to get a license to use ChemAxon (it is free for academic use)
 
 
