@@ -40,7 +40,7 @@ Recommended-
 ==================================
 ### Running web-interface loacally using streamlit
 
-- Generate model file by "running model_gen.py" using "python model_gen.py" 
+- Model generation: Run "model_gen.py" using "python model_gen.py" once to create dGPredictor model file
 - run "streamlit run ./streamlit/main.py" from dGPredictor folder
 - running KEGG reaction (doesn't require ChemAxon's Marvin) : copy paste the reaction equation into reaction section and click search
 
