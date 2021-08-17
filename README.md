@@ -56,5 +56,5 @@ Recommended-
 
 
 # demo
-![dGPredictor Demo](figures/dg_demo.gif)
+![dGPredictor Demo](figures/dg_demo_py3.mov)
 
