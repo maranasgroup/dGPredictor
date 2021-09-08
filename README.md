@@ -11,6 +11,7 @@
 6. Streamlit (https://streamlit.io/)
 7. Openbabel (https://anaconda.org/openbabel/openbabel)
 8. ChemAxon's Marvin >= 5.11 
+9. Pulp
 
 Installation
 1. Python 3.8.10 (https://www.python.org/downloads/windows/)
@@ -34,6 +35,9 @@ Recommended-
 - instructions (https://chemaxon.com/products/marvin/download)
 - add "cxcalc.bat (macOS) /cxcalc.exe (Windows)" to PATH and also in "./CC/chemaxon.py" file
 - you will need to get a license to use ChemAxon (it is free for academic use)
+9. Pulp
+- use command "pip install -U pulp"
+
 
 
 
