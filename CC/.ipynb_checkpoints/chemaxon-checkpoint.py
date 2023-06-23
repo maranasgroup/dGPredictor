@@ -9,7 +9,7 @@ import pdb
 from rdkit.Chem import rdchem
 
 if platform.system() == 'Windows':
-    CXCALC_BIN = 'C:\\Users\\vuu10\\AppData\\Local\\Programs\\ChemAxon\\MarvinSuite\\bin\\cxcalc.exe'
+    CXCALC_BIN = 'C:\\Program Files\\ChemAxon\\MarvinSuite\\bin\\cxcalc.exe'
     #CXCALC_BIN = 'C:\\Program Files (x86)\\ChemAxon\\MarvinBeans\\bin\\cxcalc.bat'
     use_shell_for_echo = True
 else:
