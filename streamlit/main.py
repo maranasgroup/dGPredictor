@@ -354,6 +354,8 @@ def get_dG0(rxn_dict, rid, pH, I, loaded_model, molsig_r1, molsig_r2, novel_deco
 
     ymean, ystd = loaded_model.predict(X, return_std=True)
 
+    conf_int = (1.96*ystd[0])/np.sqrt(4001)
+
     # print(ymean)
     # print(ystd)
     result = {}
@@ -363,7 +365,7 @@ def get_dG0(rxn_dict, rid, pH, I, loaded_model, molsig_r1, molsig_r2, novel_deco
     # result_df = pd.DataFrame([result])
     # result_df.style.hide_index()
     # return result_df
-    return ymean[0] + get_ddG0(rxn_dict, pH, I, novel_mets), ystd[0], rule_df1, rule_df2
+    return ymean[0] + get_ddG0(rxn_dict, pH, I, novel_mets), conf_int, rule_df1, rule_df2
     # return ymean[0],ystd[0]
 
 
