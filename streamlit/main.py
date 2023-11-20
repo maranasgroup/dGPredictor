@@ -20,7 +20,7 @@ from rdkit.Chem import rdChemReactions as Reactions
 from rdkit.Chem import Draw
 from rdkit import Chem
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data
 def load_smiles():
     db = pd.read_csv('./data/cache_compounds_20160818.csv',
                      index_col='compound_id')
@@ -28,27 +28,27 @@ def load_smiles():
     return db_smiles
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data
 def load_molsig_rad1():
     molecular_signature_r1 = json.load(open('./data/decompose_vector_ac.json'))
     return molecular_signature_r1
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data
 def load_molsig_rad2():
     molecular_signature_r2 = json.load(
         open('./data/decompose_vector_ac_r2_py3_indent_modified_manual.json'))
     return molecular_signature_r2
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_resource
 def load_model():
     filename = './model/M12_model_BR.pkl'
     loaded_model = joblib.load(open(filename, 'rb'))
     return loaded_model
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data
 def load_compound_cache():
     ccache = CompoundCacher()
     return ccache
