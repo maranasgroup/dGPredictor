@@ -1,14 +1,14 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
+import pandas as pd 
+import numpy as np 
+import json 
+import pdb
+from tqdm import tqdm
 import re
 from PIL import Image
-import webbrowser
-import json
 import pickle
-import sys
+import sys 
 import joblib
-import sys
+from tqdm import tqdm 
 
 sys.path.append('./CC/')
 
@@ -20,35 +20,33 @@ from rdkit.Chem import rdChemReactions as Reactions
 from rdkit.Chem import Draw
 from rdkit import Chem
 
-@st.cache_data
+
+
+# # loading dG functions and model
+
 def load_smiles():
     db = pd.read_csv('./data/cache_compounds_20160818.csv',
                      index_col='compound_id')
     db_smiles = db['smiles_pH7'].to_dict()
     return db_smiles
 
-
-@st.cache_data
 def load_molsig_rad1():
     molecular_signature_r1 = json.load(open('./data/decompose_vector_ac.json'))
     return molecular_signature_r1
 
 
-@st.cache_data
 def load_molsig_rad2():
     molecular_signature_r2 = json.load(
         open('./data/decompose_vector_ac_r2_py3_indent_modified_manual.json'))
     return molecular_signature_r2
 
 
-@st.cache_resource
 def load_model():
     filename = './model/M12_model_BR.pkl'
     loaded_model = joblib.load(open(filename, 'rb'))
     return loaded_model
 
 
-@st.cache_data
 def load_compound_cache():
     ccache = CompoundCacher()
     return ccache
@@ -119,13 +117,6 @@ def decompse_novel_mets_rad2(novel_smiles, radius=2):
         smi_count = count_substructures(radius, mol)
         decompose_vector[cid] = smi_count
     return decompose_vector
-
-# def parse_rule(rxn,df_rule):
-#     df = df_rule
-#     rule_df = df[rxn].to_frame()
-#     # new_df = rule_df[(rule_df.T != 0).any()]
-
-#     return rule_df[(rule_df.T != 0).any()]
 
 
 def parse_reaction_formula_side(s):
@@ -209,50 +200,6 @@ def draw_rxn_figure(rxn_dict, db_smiles, novel_smiles):
     rxn = Reactions.ReactionFromSmarts(smarts, useSmiles=True)
     return Draw.ReactionToImage(rxn)  # , subImgSize=(400, 400))
 
-# def draw_group_changes(rxn,df_rule):
-#     df = parse_rule(rxn,df_rule)
-#     group_dict = df.to_dict()[rxn]
-
-#     left = ''
-#     right = ''
-
-#     for smiles,stoic in group_dict.iteritems():
-#         if stoic > 0:
-#             right = right + smiles + '.'
-#         else:
-#             left = left + smiles + '.'
-#     smarts = left[:-1] + '>>' + right[:-1]
-#     rxn = Reactions.ReactionFromSmarts(smarts, useSmiles=True)
-#     return Draw.ReactionToImage(rxn)
-
-# def get_rxn_rule(rid):
-#     reaction_dict = json.load(open('../data/optstoic_v3_Sji_dict.json'))
-#     molecular_signature = json.load(open('../data/decompose_vector_ac.json'))
-#     molsigna_df = pd.DataFrame.from_dict(molecular_signature).fillna(0)
-#     all_mets = molsigna_df.columns.tolist()
-#     all_mets.append("C00080")
-#     all_mets.append("C00282")
-
-#     rule_df = pd.DataFrame(index=molsigna_df.index)
-
-#     info = reaction_dict[rid]
-
-#     # skip the reactions with missing metabolites
-#     mets = info.keys()
-#     flag = False
-#     for met in mets:
-#         if met not in all_mets:
-#             flag = True
-#             break
-#     if flag:
-#         return None
-
-#     rule_df[rid] = 0
-#     for met, stoic in info.items():
-#         if met == "C00080" or met == "C00282":
-#             continue  # hydogen is zero
-#         rule_df[rid] += molsigna_df[met] * stoic
-#     return rule_df
 
 
 def get_rule(rxn_dict, molsig1, molsig2, novel_decomposed1, novel_decomposed2):
@@ -346,18 +293,11 @@ def get_dG0(rxn_dict, rid, pH, I, loaded_model, molsig_r1, molsig_r2, novel_deco
         rxn_dict, molsig_r1, molsig_r2, novel_decomposed_r1, novel_decomposed_r2)
 
     X = rule_comb
-    # X = X.reshape(1,-1)
-    # pdb.set_trace()
-#     print(np.shape(X1))
-#     print(np.shape(X2))
-#     print(np.shape(X))
 
     ymean, ystd = loaded_model.predict(X, return_std=True)
+    
+    CI = (ystd[0]*1.96)/np.sqrt(4001)
 
-    conf_int = (1.96*ystd[0])/np.sqrt(4001)
-
-    # print(ymean)
-    # print(ystd)
     result = {}
     # result['dG0'] = ymean[0] + get_ddG0(rxn_dict, pH, I)
     # result['standard deviation'] = ystd[0]
@@ -365,9 +305,32 @@ def get_dG0(rxn_dict, rid, pH, I, loaded_model, molsig_r1, molsig_r2, novel_deco
     # result_df = pd.DataFrame([result])
     # result_df.style.hide_index()
     # return result_df
-    return ymean[0] + get_ddG0(rxn_dict, pH, I, novel_mets), conf_int, rule_df1, rule_df2
+    return ymean[0] + get_ddG0(rxn_dict, pH, I, novel_mets), ystd[0], CI , rule_df1, rule_df2
     # return ymean[0],ystd[0]
+    
+    
 
+def get_dG0_only(rxn_dict, rid, pH, I, loaded_model, molsig_r1, molsig_r2, novel_decomposed_r1, novel_decomposed_r2, novel_mets):
+
+    # rule_df = get_rxn_rule(rid)
+    rule_comb, rule_df1, rule_df2 = get_rule(
+        rxn_dict, molsig_r1, molsig_r2, novel_decomposed_r1, novel_decomposed_r2)
+
+    X = rule_comb
+
+    ymean, ystd = loaded_model.predict(X, return_std=True)
+    
+    CI = (ystd[0]*1.96)/np.sqrt(4001)
+
+    result = {}
+    # result['dG0'] = ymean[0] + get_ddG0(rxn_dict, pH, I)
+    # result['standard deviation'] = ystd[0]
+
+    # result_df = pd.DataFrame([result])
+    # result_df.style.hide_index()
+    # return result_df
+    return ymean[0] + get_ddG0(rxn_dict, pH, I, novel_mets), CI
+    # return ymean[0],ystd[0]
 
 def parse_novel_molecule(add_info):
     result = {}
@@ -385,96 +348,108 @@ def parse_novel_smiles(result):
     return novel_smiles
 
 
-def main():
-    # def img_to_bytes(img_path):
-    #     img_bytes = Path(img_path).read_bytes()
-    #     encoded = base64.b64encode(img_bytes).decode()
-    #     return encoded
-    # # st.title('dGPredictor')
 
-    # header_html = "<img src='../figures/header.png'>"
+# In[ ]:
 
-    # st.markdown(
-    #     header_html, unsafe_allow_html=True,
-    # )
 
-    db_smiles = load_smiles()
-    molsig_r1 = load_molsig_rad1()
-    molsig_r2 = load_molsig_rad2()
+db_smiles = load_smiles()
+molsig_r1 = load_molsig_rad1()
+molsig_r2 = load_molsig_rad2()
 
-    loaded_model = load_model()
-    ccache = load_compound_cache()
+loaded_model = load_model()
+ccache = load_compound_cache()
 
-    st.image('./figures/header.png', use_column_width=True)
+# #==============================#
+# json_fnames = get_ipython().getoutput('ls ./../ModelSEEDDatabase/Biochemistry/*.json')
 
-    st.subheader('Reaction (please use KEGG IDs)')
 
-    # rxn_str = st.text_input('Reaction using KEGG ids:', value='C16688 + C00001 <=> C00095 + C00092')
-    rxn_str = st.text_input(
-        '', value='C01745 + C00004 <=> N00001 + C00003 + C00001')
-    # rxn_str = st.text_input('', value='C16688 + C00001 <=> C00095 + C00092')
+# Compound_fname_list = []
+# Rxn_fname_list = []
+# Others = []
 
-    # url = 'https://www.genome.jp/dbget-bin/www_bget?rn:R00801'
-    # if st.button('KEGG format example'):
-    #     webbrowser.open_new_tab(url)
+# for fname in tqdm(json_fnames):
+#     if "compound" in fname:
+#         Compound_fname_list.append(fname)
+#     elif "reaction" in fname:
+#         Rxn_fname_list.append(fname)
+#     else:
+#         Others.append(fname)
+        
 
-    if st.checkbox('Reaction has metabolites not in KEGG'):
-        # st.subheader('test')
-        add_info = st.text_area('Additional information (id: InChI):',
-                                '{"N00001":"InChI=1S/C14H12O/c15-14-8-4-7-13(11-14)10-9-12-5-2-1-3-6-12/h1-11,15H/b10-9+"}')
+# Rxn_f0 = Rxn_fname_list[0]
+
+Rxn_f0 = './../ModelSEEDDatabase/Biochemistry/reaction_00.json'
+json_read = json.load(open(Rxn_f0))
+
+KEGG_id_ls = []
+mseed_rxn_id_ls = []
+
+
+print('strarting.....')
+for i, rxn in tqdm(enumerate(json_read)):
+    
+    try:
+        rxn_alias = rxn['aliases']
+        for ki in rxn_alias:
+            if 'KEGG' in ki:
+                kegg_id_str = ki
+        
+        KEGG_id = kegg_id_str.replace(' ', '').split(':')[1]
+        KEGG_id_ls.append(KEGG_id)
+        
+        mseed_rxn_id_ls.append(rxn['id'])
+    except:
+        KEGG_id_ls.append('No KEGG id')
+        mseed_rxn_id_ls.append(rxn['id'])
+        
+
+kegg_rxn_eqn = json.load(open('./data/KEGG_rxn_eqn_master_branch.json'))
+kegg_rxn_eqn_keys = list(kegg_rxn_eqn.keys())
+
+
+
+not_in_kegg_db = []
+present_in_kegg_db = []
+
+for i in KEGG_id_ls:
+    temp = i.split(';')
+    if len(temp) == 1:
+        if i not in kegg_rxn_eqn_keys:
+            not_in_kegg_db.append(i)
     else:
-        add_info = '{"None":"None"}'
+        for j in temp:
+            if j not in kegg_rxn_eqn_keys:
+                present_in_kegg_db.append(i)
+                
+print('not found in KEGG db: ')
+print(len(not_in_kegg_db))
 
-    # session_state = SessionState.get(name="", button_sent=False)
-    # button_search = st.button("Search")
-
-    # if button_search:
-    #     session_state.button_search = True
-    pH = st.slider('pH', min_value=0.0, max_value=14.0, value=7.0, step=0.1)
-    I = st.slider('Ionic strength [M]', min_value=0.0,
-                  max_value=0.5, value=0.1, step=0.01)
-
-    if st.button("Search"):
-        # if session_state.button_search:
-        st.subheader('Reaction Equation')
-        st.write(rxn_str)
-        with st.spinner('Searching...'):
-            try:
-                novel_mets = parse_novel_molecule(json.loads(add_info))
-                novel_smiles = parse_novel_smiles(novel_mets)
-                novel_decomposed_r1 = decompse_novel_mets_rad1(novel_smiles)
-                novel_decomposed_r2 = decompse_novel_mets_rad2(novel_smiles)
-
-            except Exception as e:
-                novel_mets = None
-                novel_smiles = None
-                novel_decomposed_r1 = None
-                novel_decomposed_r2 = None
-            # novel_smiles = json.loads(add_info)
-            print(novel_smiles)
-
-            rxn_dict = parse_formula(rxn_str)
-            st.image(draw_rxn_figure(rxn_dict, db_smiles,
-                     novel_smiles), use_column_width=True)
-
-        # st.text('Group changes:')
-        # st.write(parse_rule('R03921'))
-        # st.write(get_rxn_rule('R03921'))
-
-        # session_state.calculate  = st.button('Start Calculate!')
-        # if session_state.calculate:
-        # if st.button('Start Calculate!'):
-
-        # st.text('Result:')
-        st.subheader('Thermodynamics')
-        with st.spinner('Calculating...'):
-            mu, std, rule_df1, rule_df2 = get_dG0(
-                rxn_dict, 'R00801', pH, I, loaded_model, molsig_r1, molsig_r2, novel_decomposed_r1, novel_decomposed_r2, novel_mets)
-            st.write(r"$\Delta_r G'^{o} = %.2f \pm %.2f \ kJ/mol$" % (mu, std))
-            st.text('Group changes:')
-            st.write(rule_df1[(rule_df1.T != 0).any()])
-            st.write(rule_df2[(rule_df2.T != 0).any()])
+dG_dict = {}
+pH = 7.0
+I = 0.25
 
 
-if __name__ == '__main__':
-    main()
+print('start predicting....')
+for ix, mseed in tqdm(enumerate(mseed_rxn_id_ls)):
+    kid = KEGG_id_ls[ix]
+    multipleKEGG = kid.split(';')      ## split if there are multiple kegg ids associated with a single mseed reaction 
+    
+    temp_dict = {}
+    for krxn in multipleKEGG:
+        try:
+            reqn = kegg_rxn_eqn[krxn]
+            mu, CI = get_dG0_only(kegg_rxn_eqn[krxn], krxn, pH, I, loaded_model, molsig_r1, molsig_r2, [], [], [])
+            temp_dict[krxn] = {'dG': mu, 'dG_ConfidenceInterval': CI}
+        except:
+            temp_dict[krxn] = {'dG': np.NaN, 'dG_ConfidenceInterval': np.NaN}
+    
+    dG_dict[mseed] = temp_dict
+
+print('done.....started dumping!!!')
+fdump_name = './Modelseed_dG/dG_rxn_file_1.json'
+    
+with open(fdump_name, 'w') as f:
+    json.dump(dG_dict, f, indent = 4)
+    
+
+    
