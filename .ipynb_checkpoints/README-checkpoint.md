@@ -43,7 +43,7 @@ Recommended-
 
 
 ==================================
-### Running web-interface locally using streamlit
+### Running web-interface loacally using streamlit
 
 - Model generation: Run "model_gen.py" using "python model_gen.py" once to create dGPredictor model file :- (Running this might take some time)
 - run "streamlit run ./streamlit/main.py" from dGPredictor folder
